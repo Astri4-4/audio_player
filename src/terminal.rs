@@ -1,13 +1,10 @@
 use std::{io::{self, stdout}, thread, time::Duration};
 use crate::audio::{get_duration_display, get_duration_from_int};
-use crossterm::{event::KeyEventKind, terminal::{size, ClearType}};
+use crossterm::{cursor::{Hide, MoveTo}, event::KeyEventKind, terminal::size};
 use crossterm::style::{
     Color, Print, ResetColor, SetForegroundColor, SetBackgroundColor
 };
-use crossterm::{
-    event::{self, KeyCode, KeyEvent, Event},
-    terminal::{disable_raw_mode, enable_raw_mode},
-};
+use crossterm::event::{self, KeyCode, KeyEvent, Event};
 use crossterm::execute;
 
 #[cfg(target_os = "windows")]
@@ -27,12 +24,6 @@ pub fn clear_terminal() {
     // ANSI escape code for clearing screen (works on Unix/Linux/macOS)
     print!("\x1B[2J\x1B[1;1H");
     io::stdout().flush().unwrap();
-}
-
-fn get_term_size() -> Option<(u16, u16)> {
-
-    size().ok()
-
 }
 
 pub fn get_user_input() -> String {
@@ -80,6 +71,8 @@ pub fn track_playing_display(max_time: u64, track_name: &str) {
         }
 
         println!(" | {}", get_duration_display(track_name));
+
+        print_at_bottom(vec!["Press 'q' to exit".to_string()]);
 
         thread::sleep(Duration::from_secs(1));
 
@@ -152,11 +145,12 @@ pub fn track_list_display(files: Vec<String>) -> i32 {
             ).unwrap();
         }
 
-        println!("");
+        print_at_bottom(vec!["Salut".to_string(), "Comment".to_string()]);
+
         loop {
             let files: Vec<String> = files_clone.clone();
             if event::poll(std::time::Duration::from_millis(100)).unwrap() {
-                if let Event::Key(KeyEvent { code, modifiers, kind, .. }) = event::read().unwrap() {
+                if let Event::Key(KeyEvent { code, kind, .. }) = event::read().unwrap() {
     
                     if code == KeyCode::Down && kind == KeyEventKind::Press {
                         if cursor_line < files.len() as i32{
@@ -191,5 +185,25 @@ pub fn track_list_display(files: Vec<String>) -> i32 {
     }
 
     return cursor_line;
+
+}
+
+fn print_at_bottom(contents: Vec<String>) {
+
+    for content in contents {
+        let mut stdout = stdout();
+
+        if let Ok((.., rows)) = size() {
+
+            execute!(
+                stdout,
+                MoveTo(0, rows -1 ),
+                Print(content),
+                Hide
+            ).unwrap();
+
+        }
+
+    }
 
 }

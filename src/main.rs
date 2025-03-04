@@ -29,7 +29,7 @@ fn main() {
     loop {
         if event::poll(std::time::Duration::from_millis(100)).unwrap() {
             
-            if let Event::Key(KeyEvent { code, modifiers, kind, .. }) = event::read().unwrap() {
+            if let Event::Key(KeyEvent { code, .. }) = event::read().unwrap() {
 
                 if code == KeyCode::Char('q') {
                     break;
