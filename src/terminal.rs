@@ -7,6 +7,47 @@ use crossterm::style::{
 use crossterm::event::{self, KeyCode, KeyEvent, Event};
 use crossterm::execute;
 
+struct MyTerm {
+
+    col: Vec<bool>,
+    row: Vec<bool>,
+
+}
+
+impl MyTerm {
+
+    fn init(&mut self) {
+        let terminal_size: (u16, u16) = get_term_size();
+        let mut i: usize = 0;
+        while i < terminal_size.0 as usize {
+            self.col.append(false); //FIXME
+            i += 1;
+        }
+        i = 0;
+        while i < terminal_size.1 as usize {
+            self.row.append(false); //FIXME
+            i += 1;
+        }
+    }
+
+    fn set_col(&mut self, pos: usize) {
+        self.col[pos] = true;
+    }
+
+    fn set_row(&mut self, pos: usize) {
+        self.row[pos] = true;
+    }
+
+    fn get_col(&self) -> &Vec<bool> {
+        &self.col
+    }
+
+    fn get_row(&self) -> &Vec<bool> {
+        &self.row
+    }
+
+}
+
 #[cfg(target_os = "windows")]
 pub fn clear_terminal() {
     use std::process::Command;
@@ -46,33 +87,23 @@ pub fn track_playing_display(max_time: u64, track_name: &str) {
 
     while current_timestamp < max_time {
 
-        let mut stdout: io::Stdout = stdout();
         let terminal_size: (u16, u16) = get_term_size();
         let cols: u16 = terminal_size.0;
         let rows: u16 = terminal_size.1;
 
-        // println!("{}", track_name);
 
         let col_to_print = cols/2 - track_name.len() as u16/2 ;
 
-        execute!(
-            stdout,
-            MoveTo(col_to_print, rows/2),
-            Print(track_name)
-        ).unwrap();
+        print_here(col_to_print, rows/2, Color::White, Color::Black, track_name.to_string());
 
         let percent:f64 = current_timestamp as f64 / max_time as f64 * 100.0;
         let mut cursor: f64 = 0.0;
         let mut to_print: String = String::new();
 
-        // print!("{} |", get_duration_from_int(current_timestamp));
-
         to_print.push_str(&get_duration_from_int(current_timestamp));
         to_print.push_str(" |");
 
         while cursor < percent/10.0 {
-            // print!(" █");
-            // to_print.push_str(" █");
             to_print.push_str(" #");
             cursor += 1.0;
         }
@@ -82,14 +113,11 @@ pub fn track_playing_display(max_time: u64, track_name: &str) {
         let mut cursor: f64 = 0.0;
 
         while cursor < rest {
-            // print!(" ■");
-            // to_print.push_str(" ■");
             to_print.push_str(" -");
             cursor += 1.0;
 
         }
 
-        // println!(" | {}", get_duration_display(track_name));
         to_print.push_str("| ");
         to_print.push_str(&get_duration_display(track_name));
 
@@ -97,13 +125,7 @@ pub fn track_playing_display(max_time: u64, track_name: &str) {
 
         let col_to_print = (cols as f64 / 2.0) - (to_print.len() as f64 / 2.0);
 
-        execute!(
-            stdout,
-            // MoveTo(cols / 2 - (37 / 2), rows/2+1),
-            MoveTo(col_to_print as u16, rows/2+1),
-            Print(to_print)
-        ).unwrap();
-
+        print_here(col_to_print as u16, rows/2+1, Color::White, Color::Black, to_print);
         
 
         print_at_bottom(vec!["Press 'q' to exit".to_string()]);
@@ -128,13 +150,14 @@ pub fn track_list_display(files: Vec<String>) -> i32 {
 
     let mut action_btn: bool = false;
     let mut cursor_line: i32 = 0; 
+    
 
     loop {
+        let mut my_term = MyTerm{ col: Vec::new(), row: Vec::new()};
+        my_term.init();
         let files: Vec<String> = files.clone();
         let files_clone: Vec<String> = files.clone();
         let files_len = files.len();
-
-        let mut stdout: io::Stdout = stdout();
 
         let mut writing_cursor_line: i32 = 0;
 
@@ -152,23 +175,14 @@ pub fn track_list_display(files: Vec<String>) -> i32 {
             to_print.push_str("\n");
 
             if cursor_line == writing_cursor_line {
-                execute!(
-                    stdout,
-                    MoveTo(col_to_print, row_to_print),
-                    SetForegroundColor(Color::Black),
-                    SetBackgroundColor(Color::White),
-                    Print(to_print),
-                    ResetColor
-                ).unwrap();
+                print_here(col_to_print, row_to_print, Color::Black, Color::White, to_print);
+                my_term.set_col(col_to_print as usize);
+                my_term.set_row(row_to_print as usize);
+                println!("{:?}", my_term.get_col());
             } else {
-                execute!(
-                    stdout,
-                    MoveTo(col_to_print, row_to_print),
-                    SetForegroundColor(Color::White),
-                    SetBackgroundColor(Color::Black),
-                    Print(to_print),
-                    ResetColor,
-                ).unwrap();
+                print_here(col_to_print, row_to_print, Color::White, Color::Black, to_print);
+                my_term.set_col(col_to_print as usize);
+                my_term.set_row(row_to_print as usize);
             }
 
             writing_cursor_line += 1;
@@ -235,5 +249,21 @@ fn print_at_bottom(contents: Vec<String>) {
         }
 
     }
+
+}
+
+fn print_here(col: u16, row: u16, foreground: Color, background: Color, text: String) {
+
+    let mut stdout = stdout();
+
+    execute!(
+        stdout,
+        MoveTo(col, row),
+        SetForegroundColor(foreground),
+        SetBackgroundColor(background),
+        Print(text),
+        ResetColor
+    ).unwrap();
+
 
 }
