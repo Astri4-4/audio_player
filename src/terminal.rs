@@ -19,11 +19,11 @@ pub fn clear_terminal() {
 
 #[cfg(not(target_os = "windows"))]
 pub fn clear_terminal() {
-    use std::io::{self, Write};
+    use std::io::Write;
 
     // ANSI escape code for clearing screen (works on Unix/Linux/macOS)
     print!("\x1B[2J\x1B[1;1H");
-    io::stdout().flush().unwrap();
+    stdout().flush().unwrap();
 }
 
 pub fn get_user_input() -> String {
@@ -32,7 +32,7 @@ pub fn get_user_input() -> String {
 
     io::stdin().read_line(&mut input).expect("Unable to read user input");
 
-    return input;
+    input
 
 }
 
@@ -96,9 +96,6 @@ pub fn track_playing_display(max_time: u64, track_name: &str) {
         to_print.push_str(" ");
 
         let col_to_print = (cols as f64 / 2.0) - (to_print.len() as f64 / 2.0);
-        
-
-        // 00:00 | a a a a a a a a a a a | 00:00 -> 37 char
 
         execute!(
             stdout,
@@ -123,7 +120,7 @@ pub fn track_playing_display(max_time: u64, track_name: &str) {
 
 pub fn get_term_size() -> (u16, u16) {
 
-    return crossterm::terminal::size().unwrap();
+    size().unwrap()
 
 }
 
@@ -182,7 +179,7 @@ pub fn track_list_display(files: Vec<String>) -> i32 {
         // Pointing
         loop {
             let files: Vec<String> = files_clone.clone();
-            if event::poll(std::time::Duration::from_millis(100)).unwrap() {
+            if event::poll(Duration::from_millis(100)).unwrap() {
                 if let Event::Key(KeyEvent { code, kind, .. }) = event::read().unwrap() {
     
                     if code == KeyCode::Down && kind == KeyEventKind::Press {
@@ -190,7 +187,7 @@ pub fn track_list_display(files: Vec<String>) -> i32 {
                             cursor_line += 1;
                         }
                     } else if code == KeyCode::Up && kind == KeyEventKind::Press {
-                        if cursor_line > 0 as i32 {
+                        if cursor_line > 0i32 {
                             cursor_line -= 1;
                         } 
                         
@@ -217,7 +214,7 @@ pub fn track_list_display(files: Vec<String>) -> i32 {
 
     }
 
-    return cursor_line;
+    cursor_line
 
 }
 
